@@ -1,17 +1,16 @@
-/** 
- * @file This file contains the entry point of the app, and handles most ipc events sent 
+/**
+ * @file This file contains the entry point of the app, and handles most ipc events sent
  * the main process.
 */
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { PublishRequest } from "./common/Objects/PublishObjects";
-import { LoginAssistant } from "./main/Api/Auth";
-import { publish } from "./main/Publishing/Publishing";
-import { getUserInfo } from "./main/Api/User";
 import { User } from "./common/Objects/UserObject";
-const octokit = require("@octokit/rest")();
+import { LoginAssistant } from "./main/Api/Auth";
+import { getUserInfo } from "./main/Api/User";
+import { publish } from "./main/Publishing/Publishing";
 
 /**
- * This is the main window of the program. 
+ * This is the main window of the program.
  * It is exported so other classes can access it to
  * send events, attach child windows to it, etc.
  */
@@ -23,8 +22,8 @@ export let mainWindow: BrowserWindow;
  */
 let currentUser: User = null;
 
-/** 
- * This function is called when the app is ready, and is tasked with 
+/**
+ * This function is called when the app is ready, and is tasked with
  * creating the main window.
  */
 function createWindow() {
@@ -35,7 +34,7 @@ function createWindow() {
     mainWindow.setMenu(null);
     mainWindow.maximize();
 
-    loadLoginpage()
+    loadLoginpage();
     // mainWindow.webContents.openDevTools()
 
     mainWindow.on("closed", () => {
@@ -71,7 +70,7 @@ ipcMain.on("request-login", () => {
     assist.requestLogin((token, error) => {
         console.log("Token " + (token ? "not null" : "null") + ", Error " + (error ? "not null" : "null"));
         if (token) {
-            finishLogin(token)
+            finishLogin(token);
         } else {
             mainWindow.webContents.send("login-failure", error);
         }
@@ -80,17 +79,17 @@ ipcMain.on("request-login", () => {
 
 /**
  * Handles a authentication-related error, and displays a "error" box to the user
- * giving him some information about what happened. This is called when the 
- * user tries to do something without being authenticated 
- * (which should never happen, unless there's a bug in the app that 
+ * giving him some information about what happened. This is called when the
+ * user tries to do something without being authenticated
+ * (which should never happen, unless there's a bug in the app that
  * allows the user to access main.html without being logged in)
- * or if the GitHub API refuses to give us user information (again, because of 
+ * or if the GitHub API refuses to give us user information (again, because of
  * a bug, or if the API is down)
  * @param {string} error The error message to be displayed to the user
  */
 export function authError(error: string) {
     console.error("Login/Auth Error.");
-    if(error != null){
+    if (error != null) {
         console.error(error);
         dialog.showErrorBox("Auth Error", error);
     }
@@ -101,22 +100,22 @@ export function authError(error: string) {
  * Handles a logout event, which is usually fired by the renderer process
  * on a "logout" button press.
  * This will clear the cookies of the Electron app, logging the user
- * out of GitHub on our app for good. (Next time he'll have to re-enter 
+ * out of GitHub on our app for good. (Next time he'll have to re-enter
  * his credentials)
  */
 ipcMain.on("logout-user", () => {
     // Clear the cookies
     mainWindow.webContents.session.clearStorageData(null, () => {});
     loadLoginpage();
-})
+});
 
 /**
  * This function completes the login process by retrieving the user's
  * information and showing the main-menu page (see loadMainMenu}. If the
  * user information cannot be retrieved, authError is called, and the error
  * is logged to the console using console.error()
- * @async 
- * @param {string} token The access token returned by the GitHub API 
+ * @async
+ * @param {string} token The access token returned by the GitHub API
  */
 async function finishLogin(token: string) {
     try {
@@ -124,14 +123,14 @@ async function finishLogin(token: string) {
         currentUser = await getUserInfo(token);
         console.log("Redirecting...");
         loadMainMenu();
-    } catch(error) {
+    } catch (error) {
         console.error(error);
         authError("Something went wrong and we couldn't log you in.");
     }
 }
 
 /**
- * Handles the publishing request event, fired by the renderer process when "publish" is 
+ * Handles the publishing request event, fired by the renderer process when "publish" is
  * pressed. This will check that the current user is valid before proceeding.
  * If the user is valid, it'll complete the request with the user's information
  * and call publish() from src/main/Publishing/Publishing.ts
@@ -160,14 +159,16 @@ ipcMain.on("request-publishing", (event: Event, request: PublishRequest) => {
  * that it's a valid string.
  * @returns {boolean} True if the current user is valid, false otherwise.
  */
-function isCurrentUserValid() : boolean {
-    if(currentUser == null)
-        return false; 
-    
-    if((currentUser.userName == null) || (currentUser.avatar_url == null) || (currentUser.token == null))
+function isCurrentUserValid(): boolean {
+    if (currentUser == null) {
         return false;
+    }
 
-    return (currentUser.avatar_url !== "") && (currentUser.userName != "") && (currentUser.token !== ""); 
+    if ((currentUser.userName == null) || (currentUser.avatar_url == null) || (currentUser.token == null)) {
+        return false;
+    }
+
+    return (currentUser.avatar_url !== "") && (currentUser.userName !== "") && (currentUser.token !== "");
 }
 
 /**
@@ -204,7 +205,7 @@ app.on("activate", () => {
  * it.
  */
 ipcMain.on("get-user-object", (event: any) => {
-    console.log('A Window requested a copy of the user object');
+    console.log("A Window requested a copy of the user object");
     event.returnValue = currentUser.withoutToken();
-})
+});
 

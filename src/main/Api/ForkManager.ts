@@ -1,30 +1,35 @@
 /**
  * @file This file contains the ForkManager class, which will fork a repo and make it
  * even with it's original.
- * 
+ *
  * Useful resources:
  *  To understand the logic behind syncing a fork with it's original: https://stackoverflow.com/a/27762278/3232822
  */
-const octokit = require("@octokit/rest")();
-const GitUrlParse = require("git-url-parse");
+
+// const GitUrlParse = require("git-url-parse");
+// import { authenticate } from "@octokit/rest";
+import * as OctoKit from "@octokit/rest";
+import * as GitUrlParse from "git-url-parse";
 
 /**
  * This class manages the forking process.
  */
 export class ForkManager {
-    baseOwner: string;
-    currentUser: string;
-    repo: string;
-    branch: string;
-    token: string;  
+    public baseOwner: string;
+    public currentUser: string;
+    public repo: string;
+    public branch: string;
+    public token: string;
+    private octokit: OctoKit;
 
     /**
      * @constructor
      * @param {string} token The user's token
      */
     constructor(token: string) {
+        this.octokit = new OctoKit();
         this.token = token;
-        octokit.authenticate({
+        this.octokit.authenticate({
             type: "oauth",
             token: this.token,
         });
@@ -32,7 +37,7 @@ export class ForkManager {
 
     /**
      * Forks a repository located a "repoURL" for the "currentUser".
-     * The forks "branch" branch is assured to be up to date (even) with the original's 
+     * The forks "branch" branch is assured to be up to date (even) with the original's
      * @param {string} repoURL The URL of the repo to fork. This repo must not be owned by the user logged in.
      * @param {string} currentUser The name of the currently logged in user.
      * @param {string} branch The branch that must be forked/kept even.
@@ -47,11 +52,11 @@ export class ForkManager {
             this.repo = parsedURL.name;
 
             const fork_url = await this.createFork();
-            console.log('Fork created/found at "' + fork_url + '"')
+            console.log('Fork created/found at "' + fork_url + '"');
 
-            console.log('Attempting to update fork')
+            console.log("Attempting to update fork");
             await this.updateFork();
-            console.log('Done')
+            console.log("Done");
             return fork_url;
         } catch (error) {
             return Promise.reject<string>(error);
@@ -64,7 +69,7 @@ export class ForkManager {
      */
     private createFork(): Promise<string> {
         return new Promise<string>((resolve, reject) => {
-            octokit.repos.fork({
+            this.octokit.repos.fork({
                 owner : this.baseOwner,
                 repo  : this.repo,
             }, (error: any, result: any) => {
@@ -85,7 +90,7 @@ export class ForkManager {
      */
     private updateFork(): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            octokit.gitdata.getReference({
+            this.octokit.gitdata.getReference({
                 owner : this.baseOwner,
                 repo  : this.repo,
                 ref   : "heads/" + this.branch,
@@ -108,7 +113,7 @@ export class ForkManager {
                             resolve();
                         })
                         .catch((mergeError: any) => {
-                            console.log('Merge error');
+                            console.log("Merge error");
                             console.error(mergeError);
                             reject(mergeError);
                         });
@@ -121,12 +126,12 @@ export class ForkManager {
      * Merges a head in the base. The head is the sha hash of a commit (usually the latest commit of a fork's origin).
      * This function will try to query the github api to make the repo "this.currentUser"/"this.repo" branch "this.branch"
      * even with the commit "sha".
-     * @param {string} sha 
+     * @param {string} sha
      * @returns a Promise of a number, resolved with the status code on success, rejected with an error on failure.
      */
     private merge(sha: string): Promise<number> {
         return new Promise<number>((resolve, reject) => {
-            octokit.repos.merge({
+            this.octokit.repos.merge({
                 owner : this.currentUser,
                 repo  : this.repo,
                 base  : this.branch,

@@ -3,10 +3,10 @@
  * file from a .csv file.
  */
 
-const csv_parser = require("csv-parse");
-const fs = require("fs");
+import * as csvParser from "csv-parse";
+import * as fs from "fs";
 
-import { CSVConf, HTAccessConf } from "./../../culturize.conf"
+import { CSVConf, HTAccessConf } from "./../../culturize.conf";
 
 /**
  * This is a function type used by createArrayFromCSV which is
@@ -27,7 +27,7 @@ type OnRejectRow = (row: CSVRow) => void;
 export class CSVRow {
     /**
      * Creates an array of CSVRow objects from a file "filepath".
-     * 
+     *
      * @static
      * @returns a Promise, resolved with the result on success, rejected with an error message on error.
      * @param {string} filepath The path to the .csv file
@@ -50,15 +50,15 @@ export class CSVRow {
 
             // Create the parser instance
             // See all options at http://csv.adaltas.com/parse/#parser-options
-            const parser = csv_parser(
-                { 
+            const parser = csvParser(
+                {
                     // Set columns to true, which makes the parser treat
                     // the first row of the .csv as the column names.
-                    columns: true, 
+                    columns: true,
 
                     // Makes the parser discard
                     // inconsistent column count instead of crashing
-                    relax_column_count: true 
+                    relax_column_count: true,
                 });
 
             // Set the functions that handles the parsing process
@@ -68,25 +68,22 @@ export class CSVRow {
                     const row: CSVRow = CSVRow.createRow(data);
                     if (row != null) {
                         // If it isn't null, check the 'legality'/validity of the row
-                        let validity = row.isValid()
-                        if(validity != null)
-                        {
+                        const validity = row.isValid();
+                        if (validity != null) {
                             rowReject(row);
-                            if(!CSVConf.IGNORE_ON_INVALID_DATA) {
-                                console.log('The CSV file contains invalid data:' + validity)
-                                reject(validity)
+                            if (!CSVConf.IGNORE_ON_INVALID_DATA) {
+                                console.log("The CSV file contains invalid data:" + validity);
+                                reject(validity);
                                 break;
                             }
-                        }
-                        else
-                        {
+                        } else {
                             // We're good, push
                             rowAccept(row);
                             array.push(row);
                         }
-                    }
-                    else 
+                    } else {
                         rowReject(row);
+                    }
                 }
             });
 
@@ -99,14 +96,11 @@ export class CSVRow {
             // Sets the function that finishes the parsing
             // process
             parser.on("finish", () => {
-                if(array.length === 0)
-                {
+                if (array.length === 0) {
                     console.error("No rows in CSV Array");
                     reject("No valid row found in the CSV File.");
                     return;
-                }
-                else
-                {
+                } else {
                     // If the array contains something, check it for
                     // duplicates
                     CSVRow.checkArrayForDuplicates(array)
@@ -114,12 +108,12 @@ export class CSVRow {
                             resolve(array);
                         })
                         .catch((reason: string) => {
-                            reject(reason)
-                        })
+                            reject(reason);
+                        });
                 }
             });
 
-            // Send the .csv data to the parser & trigger the 
+            // Send the .csv data to the parser & trigger the
             // parsing.
             parser.write(str);
             parser.end();
@@ -128,7 +122,7 @@ export class CSVRow {
 
     /**
      * Creates a CSVRow instance from a (presumed valid) row of data.
-     * @param {any} row The row of data 
+     * @param {any} row The row of data
      * @returns The instance, or null if the row of data is invalid/incomplete or disabled.
      */
     public static createRow(row: any): CSVRow {
@@ -143,31 +137,31 @@ export class CSVRow {
     }
 
     /**
-     * 
+     *
      * Helper function that checks a CSVRow array for duplicate redirections.
-     * 
+     *
      * @static
      * @returns A promise, resolved if the array contains no duplicates, rejected with
      * an error message if it contains duplicates.
      * @param {CSVRow[]} array The array to be checked
      */
-    private static checkArrayForDuplicates(array: CSVRow[]) : Promise<void> {
-        return new Promise<void>((resolve,reject) => {
-            let redirs = new Array<string>()
+    private static checkArrayForDuplicates(array: CSVRow[]): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            const redirs = new Array<string>();
 
             // Iterate over the array, and populate the "redirs" array
             // with strings of the form element.docType + '/' + element.pid
-            for(let element of array)
-            {
-                let tmp: string = element.docType + '/' + element.pid;
+            for (const element of array) {
+                let tmp: string = element.docType + "/" + element.pid;
 
                 // If the redirections are going to be case insensitive,
                 // compare all the redirections in uppercase.
                 // If we ignored this step, we could generate false positives,
                 // claiming that the array doesn't contain duplicate redirections
                 // while it does.
-                if(HTAccessConf.caseInsensitiveRedirs)
+                if (HTAccessConf.caseInsensitiveRedirs) {
                     tmp = tmp.toUpperCase();
+                }
 
                 redirs.push(tmp);
             }
@@ -176,21 +170,19 @@ export class CSVRow {
             redirs.sort();
 
             // Check if there's a place where the (element before) === (element after)
-            let duplicates = new Array<string>();
-            let redirs_length = redirs.length;
-            for(let k = 0; k < redirs_length - 1; k++) {
-                if(redirs[k] == redirs[k+1]) {
+            const duplicates = new Array<string>();
+            const redirsLength = redirs.length;
+            for (let k = 0; k < redirsLength - 1; k++) {
+                if (redirs[k] === redirs[k + 1]) {
                     duplicates.push(redirs[k]);
                 }
             }
 
             // Check if the duplicates contains anything
-            if(duplicates.length !== 0)
-            {
+            if (duplicates.length !== 0) {
                 // Create a "diagnostic" string that contains every duplicate
-                let diagStr : string = "Duplicate redirections found: "
-                for(let duplicate of duplicates)
-                {
+                let diagStr: string = "Duplicate redirections found: ";
+                for (const duplicate of duplicates) {
                     console.error("Duplicate redirection of \"" + duplicate + "\"");
                     diagStr += duplicate + ", ";
                 }
@@ -200,65 +192,26 @@ export class CSVRow {
 
             // If we passed every check, we are good!
             resolve();
-        })
-    }
-
-    /**
-     * Helper function that checks if a CSVRow instance contains
-     * valid data.
-     * 
-     * @returns null if the row is valid, or an error message if it isn't.
-     */
-    private isValid() : string {
-        /**
-         * Checks if a string obeys the "^([a-z]|[A-Z]|[0-9]|-|_)+$" 
-         * regular expression. 
-         * 
-         * TL;DR: The string can only contains uppercase/lowercase letters, numbers, dashes and underscores.
-         * @param {string} text The string to be checked
-         * @returns True if the string is considered valid, false otherwise.
-         */
-        let fn = (text: string) : boolean => {
-            return /^([a-z]|[A-Z]|[0-9]|-|_)+$/.test(text);
-        }
-
-        // Check if the doctype isn't empty
-        if(this.docType !== "")
-        {
-            // If the document type is not empty, check if it's recognized by the Regular Expression.
-            // If it isn't, we have an error.
-            if(!fn(this.docType)) 
-                return "The document type \"" + this.docType + "\" contains invalid characters";
-        }
-        // If the doctype is empty, check if it's allowed. If it isn't -> error.
-        else if(!CSVConf.ALLOW_NO_DOCTYPE) 
-            return "No document type in row";
-        
-        // Check the PID.
-        if(!fn(this.pid))
-            return "The PID \"" + this.pid + "\" contains invalid characters";
-        
-        // If we passed all the checks, return "null" (for success)
-        return null;
+        });
     }
 
 
     /**
-     * Checks if a row of data satisfies the minimum requirements to form a 
+     * Checks if a row of data satisfies the minimum requirements to form a
      * valid CSVRow instance.
-     * 
+     *
      * A Row is considered valid if the PID, URL and document type aren't null or empty.
      * Note that document type may be null/empty if the ALLOW_NO_DOCTYPE is set to true.
-     * 
+     *
      * @static
      * @param {any} row The row of data to be checked
-     * @returns True if the row is valid, false otherwise. 
+     * @returns True if the row is valid, false otherwise.
      */
     private static satisfiesMinimumRequirements(row: any): boolean {
         /**
          * Helper function that checks if a key in the row is not null or empty.
          * @param {string} key The key to be checked in the row
-         * @returns True if the key is valid, false otherwise 
+         * @returns True if the key is valid, false otherwise
          */
         const isValid = (key: string): boolean => {
             const data = row[key];
@@ -269,12 +222,12 @@ export class CSVRow {
 
     /**
      * Checks if a row of data should be enabled or not.
-     * 
-     * A row is enabled in all cases, except if the COL_ENABLED field is 
+     *
+     * A row is enabled in all cases, except if the COL_ENABLED field is
      * present and set to 0.
-     * @static 
+     * @static
      * @param {any} row The row to be checked
-     * @returns true if the row should be enabled, false otherwise. 
+     * @returns true if the row should be enabled, false otherwise.
      */
     private static isEnabled(row: any): boolean {
         const value: string = row[CSVConf.COL_ENABLED];
@@ -285,9 +238,9 @@ export class CSVRow {
     }
 
     // Members
-    pid: string;
-    docType: string;
-    url: string;
+    public pid: string;
+    public docType: string;
+    public url: string;
 
     /**
      * The constructor of the class, which is private so it can
@@ -299,13 +252,53 @@ export class CSVRow {
      */
     private constructor(pid: string, docType: string, url: string) {
         this.pid = pid.trim();
-        if(docType != null)
+        if (docType != null) {
             this.docType = docType.trim();
-        else 
-            this.docType = ""
+        } else {
+            this.docType = "";
+        }
         // Replace "%" with "\%" to prohibit apache from
         // recognizing it as a regex substitution argument.
         this.url = url.trim().replace("%", "\\%");
+    }
+
+    /**
+     * Helper function that checks if a CSVRow instance contains
+     * valid data.
+     *
+     * @returns null if the row is valid, or an error message if it isn't.
+     */
+    private isValid(): string {
+        /**
+         * Checks if a string obeys the "^([a-z]|[A-Z]|[0-9]|-|_)+$"
+         * regular expression.
+         *
+         * TL;DR: The string can only contains uppercase/lowercase letters, numbers, dashes and underscores.
+         * @param {string} text The string to be checked
+         * @returns True if the string is considered valid, false otherwise.
+         */
+        const fn = (text: string): boolean => {
+            return /^([a-z]|[A-Z]|[0-9]|-|_)+$/.test(text);
+        };
+
+        // Check if the doctype isn't empty
+        if (this.docType !== "") {
+            // If the document type is not empty, check if it's recognized by the Regular Expression.
+            // If it isn't, we have an error.
+            if (!fn(this.docType)) {
+                return "The document type \"" + this.docType + "\" contains invalid characters";
+            }
+        } else if (!CSVConf.ALLOW_NO_DOCTYPE) {
+            return "No document type in row";
+             }
+
+        // Check the PID.
+        if (!fn(this.pid)) {
+            return "The PID \"" + this.pid + "\" contains invalid characters";
+        }
+
+        // If we passed all the checks, return "null" (for success)
+        return null;
     }
 }
 
@@ -314,7 +307,7 @@ export class CSVRow {
  * process from a CSVRow[]
  */
 export class HTAccessCreator {
-    csvArray: CSVRow[];
+    public csvArray: CSVRow[];
 
     /**
      * @constructor
@@ -333,7 +326,7 @@ export class HTAccessCreator {
         let data: string = this.getHeader() + "\n\n";
 
         // Create the RewriteRule for each CSVRow
-        for(let row of this.csvArray) {
+        for (const row of this.csvArray) {
             data += this.getRewriteRule(row) + "\n";
         }
 
@@ -350,8 +343,8 @@ export class HTAccessCreator {
 
     /**
      * Creates a .htaccess "RewriteRule" from a CSVRow.
-     * 
-     * @param {CSVRow} row The row 
+     *
+     * @param {CSVRow} row The row
      * @returns The string containing the RewriteRule
      */
     private getRewriteRule(row: CSVRow): string {
@@ -360,19 +353,22 @@ export class HTAccessCreator {
         }
 
         // Create options
-        let options : string = "R=" + HTAccessConf.redirectionCode;
-        if(HTAccessConf.caseInsensitiveRedirs)
+        let options: string = "R=" + HTAccessConf.redirectionCode;
+        if (HTAccessConf.caseInsensitiveRedirs) {
             options += ",NC";
-        if(HTAccessConf.noEscape)
+        }
+        if (HTAccessConf.noEscape) {
             options += ",NE";
+        }
         options += ",L";
-        
-        // Create redirection 
-        let redir : string = "";
-        if(row.docType != "")
-            redir = row.docType + '/' + row.pid;
-        else 
+
+        // Create redirection
+        let redir: string = "";
+        if (row.docType !== "") {
+            redir = row.docType + "/" + row.pid;
+        } else {
             redir = row.pid;
+        }
         return `RewriteRule ^${redir}$ ${row.url} [${options}]`;
     }
 }
@@ -384,14 +380,14 @@ export class HTAccessCreator {
  */
 export class HTAccessConversionResult {
     // The file content
-    file: string;
+    public file: string;
 
     // Stats
-    numLinesRejected: number;
-    numLinesAccepted: number;
+    public numLinesRejected: number;
+    public numLinesAccepted: number;
 
     /**
-     * @constructor 
+     * @constructor
      * @param {string} file  The data (file CONTENT)
      * @param {number} rejected The number of rows rejected in the original CSV
      * @param {number} accepted The number of rows used/accepted in the original CSV
@@ -419,18 +415,18 @@ export function convertCSVtoHTACCESS(filepath: string): Promise<HTAccessConversi
         let numRejected: number = 0;
 
         // Create the array
-        CSVRow.createArrayFromCSV(filepath, 
+        CSVRow.createArrayFromCSV(filepath,
         // Acceptation
         () => {
             numAccepted++;
-        }, 
+        },
         // Rejection
         (row: CSVRow) => {
             numRejected ++;
         })
         .then((value: CSVRow[]) => {
                 const creator = new HTAccessCreator(value);
-                resolve(new HTAccessConversionResult(creator.makeHTAccessFile(),numRejected,numAccepted));
+                resolve(new HTAccessConversionResult(creator.makeHTAccessFile(), numRejected, numAccepted));
             })
         .catch((error: string) => {
             reject(error);

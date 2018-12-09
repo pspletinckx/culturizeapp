@@ -6,27 +6,28 @@ import fs = require("fs");
 const GitUrlParse = require("git-url-parse");
 const shellJs = require("shelljs");
 const simpleGit = require("simple-git");
+const path = require("path");
 
 /**
- * This class is responsible for managing a local copy of a 
+ * This class is responsible for managing a local copy of a
  * GitHub repository.
  * It provides the following functionality:
- * 
+ *
  *      Updating a local copy: This will clone or reset+pull the repo
- * 
+ *
  *      Pushing: This will add/commit/push to the repo.
- * 
+ *
  * Note that the current user must have write access to the repo you're
  * trying to manage!
  */
 export class GitRepoManager {
-    repoURL: string;
-    workingDir: string;
-    repoName: string;
-    ownerName: string;
-    repoDir: string;
-    token: string;
-    branch: string;
+    public repoURL: string;
+    public workingDir: string;
+    public repoName: string;
+    public ownerName: string;
+    public repoDir: string;
+    public token: string;
+    public branch: string;
 
     /**
      * @constructor
@@ -42,7 +43,7 @@ export class GitRepoManager {
         this.branch = branch;
 
         // Default to "userData" folder if no working dir is provided.
-        if (workingDir == "") {
+        if (workingDir === "") {
             this.workingDir = app.getPath("userData") + "/repo";
         } else {
             this.workingDir = workingDir;
@@ -52,18 +53,18 @@ export class GitRepoManager {
         const parsedURL = GitUrlParse(this.repoURL);
         this.repoName = parsedURL.name;
         this.ownerName = parsedURL.owner;
-        this.repoDir = this.workingDir + "\\" + this.repoName;
+        this.repoDir = path.join(this.workingDir, this.repoName);
 
         // If it doesn't exists, create the working directory.
         this.createFoldersIfNeeded(this.workingDir);
     }
 
     /**
-     * This function will done one of 2 things: 
-     * 
+     * This function will done one of 2 things:
+     *
      * If we already have a local copy of the repo, it'll
-     * do "git checkout (this.branch)" + "git reset --hard" + "git pull" 
-     * 
+     * do "git checkout (this.branch)" + "git reset --hard" + "git pull"
+     *
      * Else, it'll clone the repo and checkout the correct branch.
      * @returns A Promise, which is resolved once the operation is completed, rejected (with an error message) on error.
      */
@@ -76,9 +77,10 @@ export class GitRepoManager {
                     console.log("Local copy detected, pulling changes");
                     simpleGit(this.repoDir)
                     .checkout(this.branch)
-                        .reset([ "--hard" ], (err:any) => {
-                            if(err)
+                        .reset([ "--hard" ], (err: any) => {
+                            if (err) {
                                 reject("Failed to reset local copy of the repo.");
+                            }
                         }).pull((err: any) => {
                             if (err == null) {
                                 console.log("Pull successful");
@@ -95,14 +97,11 @@ export class GitRepoManager {
                     .clone(this.repoURL, undefined, (err: any) => {
                         if (err == null) {
                             console.log("Cloning success");
-                            simpleGit(this.repoDir).checkout(this.branch,(err:any) => {
-                                if(err == null)
-                                {
+                            simpleGit(this.repoDir).checkout(this.branch, (err: any) => {
+                                if (err == null) {
                                     console.log("Checkout Success");
                                     resolve();
-                                }
-                                else 
-                                {
+                                } else {
                                     console.error("Failed to checkout branch");
                                     console.error(err);
                                     reject();
@@ -123,11 +122,11 @@ export class GitRepoManager {
     }
 
     /**
-     * Save the "fileContent" string in a file called "fileName" 
+     * Save the "fileContent" string in a file called "fileName"
      * in a directory of the repo"subDir".
-     * 
+     *
      * If the file already exists, it'll be deleted.
-     * 
+     *
      * @param {string} fileContent The string to be written to the file
      * @param {string} fileName    The name of the file
      * @param {string} subDir      The subdirectory of the repo where the file will be saved (will be created if needed)
@@ -148,7 +147,7 @@ export class GitRepoManager {
     public pushChanges(commitMessage: string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             const url = this.makeGitHTTPSUrl();
-            try{
+            try {
                 simpleGit(this.repoDir)
                 .add("./*")
                 .commit(commitMessage)
@@ -160,9 +159,7 @@ export class GitRepoManager {
                         resolve();
                     }
                 });
-            }
-            catch(err)
-            {
+            } catch (err) {
                 console.error(err);
                 reject("Failed to push changes");
             }
@@ -171,9 +168,9 @@ export class GitRepoManager {
 
     /**
      * Utility function that'll generate a git https url, used to authenticate with the CLI git tool.
-     * 
+     *
      * The url has the following form: https:://username:token@github.com/owner/repo.git
-     * 
+     *
      * @returns the generated URL
      */
     private makeGitHTTPSUrl() {
@@ -182,12 +179,12 @@ export class GitRepoManager {
 
     /**
      * Checks if "repoDir" contains a repo. This will check using 1 of 2 ways:
-     * 
+     *
      * 1st = Check if the "repoDir" folder exists. If it doesn't exists, resolve(false) is called. (= repo doesn't exist)
-     * 
+     *
      * 2nd = If "repoDir" exists, use "simpleGit.hasRepo" to check if it contains a valid GitHub repository.
-     * 
-     * @returns a Promise, resolved with a boolean value (true = repo exists, false otherwise) on success, 
+     *
+     * @returns a Promise, resolved with a boolean value (true = repo exists, false otherwise) on success,
      * rejected (with an error message) on error.
      */
     private hasRepo(): Promise<boolean> {

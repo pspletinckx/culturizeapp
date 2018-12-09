@@ -8,9 +8,9 @@ const dialog = remote.dialog;
 /**
  * The type of the callback that's called when the user is done
  * looking for a file (dialog box is closed)
- * 
+ *
  * The first arg is the path to the file (maybe null)
- * 
+ *
  * The second arg is the error message, if applicable (maybe null)
  */
 type FileFoundCallback = (filepath: string, errorMsg: string) => void;

@@ -2,7 +2,7 @@
  * @file This file is tasked with retrieving the user information
  * using the GitHub API.
  */
-const octokit = require("@octokit/rest")();
+import * as OctoKit from "@octokit/rest";
 import { User } from "../../common/Objects/UserObject";
 
 /**
@@ -13,6 +13,7 @@ import { User } from "../../common/Objects/UserObject";
  * @returns a Promise of a User object, resolved on success, rejected with an error message on failure.
  */
 export function getUserInfo(token: string): Promise<User> {
+    const octokit = new OctoKit();
     octokit.authenticate({
         type: "oauth",
         token,

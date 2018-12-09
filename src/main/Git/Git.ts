@@ -2,12 +2,12 @@
  * @file This file is reponsible for interacting with the Git command line tool.
  */
 import { app } from "electron";
-import fs = require("fs");
-const GitUrlParse = require("git-url-parse");
-const shellJs = require("shelljs");
+import * as fs from "fs";
+import * as GitUrlParse from "git-url-parse";
+import * as path from "path";
+import * as shellJs from "shelljs";
+// import * as simpleGit from "simple-git";
 const simpleGit = require("simple-git");
-const path = require("path");
-
 /**
  * This class is responsible for managing a local copy of a
  * GitHub repository.

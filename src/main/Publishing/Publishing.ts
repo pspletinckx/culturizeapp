@@ -21,16 +21,17 @@
  *  9.  We make a pull request to ask the owner of the target repo to accept the changes.
  */
 
-import fs = require("fs");
+import * as Octokit from "@octokit/rest";
+import * as fs from "fs";
+import * as GitUrlParse from "git-url-parse";
+// import * as isGithubUrl from "is-github-url";
+const isGithubUrl = require("is-github-url");
 import { PublishRequest, PublishRequestResult } from "./../../common/Objects/PublishObjects";
 import { PublishOptions } from "./../../culturize.conf";
 import { mainWindow } from "./../../main";
 import { ForkManager } from "./../Api/ForkManager";
 import { convertCSVtoHTACCESS } from "./../Converter/Converter";
 import { GitRepoManager } from "./../Git/Git";
-const isGithubUrl = require("is-github-url");
-const octokit = require("@octokit/rest")();
-const GitUrlParse = require("git-url-parse");
 
 /**
  * This is the regular expression used to check the
@@ -217,7 +218,8 @@ type StringProvider = () => string;
  * @param {StringProvider} bodyProvider  The function that will generate a body for the PR
  */
 function createPullRequest(token: string, owner: string, repo: string, user: string, branch: string,
-                            titleProvider: StringProvider, bodyProvider: StringProvider): Promise<void> {
+                           titleProvider: StringProvider, bodyProvider: StringProvider): Promise<void> {
+    const octokit = new Octokit();
     // Authenticate with octokit
     octokit.authenticate({
         type: "oauth",

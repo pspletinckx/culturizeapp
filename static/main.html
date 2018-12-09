@@ -126,6 +126,7 @@
 
     // Fill in the fields with the default values
     const PublishFormDefaults = require('./../dist/culturize.conf.js').PublishFormDefaults
+    // import { PublishFormDefaults } from "../dist/culturize.conf";
 
     let user = ipc.sendSync('get-user-object')
     if (!user) // If the user is null, redirect to the login page

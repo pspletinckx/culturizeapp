@@ -6,8 +6,6 @@
  *  To understand the logic behind syncing a fork with it's original: https://stackoverflow.com/a/27762278/3232822
  */
 
-// const GitUrlParse = require("git-url-parse");
-// import { authenticate } from "@octokit/rest";
 import * as OctoKit from "@octokit/rest";
 import * as GitUrlParse from "git-url-parse";
 
